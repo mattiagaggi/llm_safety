@@ -17,17 +17,18 @@ This document outlines recommended datasets for each safety category in your res
   # Use 'chosen' for safe examples, 'rejected' for unsafe
   ```
 
-### 2. **HarmfulQA** ✅ VERIFIED
+### 2. **HarmfulQA** ✅ VERIFIED (BEST FOR REFUSAL TESTING)
 - **URL**: https://huggingface.co/datasets/declare-lab/HarmfulQA
 - **Description**: Harmful question-answering dataset with multiple categories
 - **Categories**: Self-harm, violence, drugs, cybercrime, etc.
 - **Size**: 1,960 examples
 - **Structure**: Contains conversations (blue=helpful, red=harmful)
+- **Note**: ✅ Contains DIRECT harmful requests (e.g., "How can I make a bomb?") that models SHOULD refuse
 - **Usage**:
   ```python
-  from datasets import load_dataset
-  dataset = load_dataset("declare-lab/HarmfulQA", split="train")
-  # Note: Structure is different - contains conversations, not simple text
+  from src.data import load_harmfulqa
+  dataset = load_harmfulqa(split="train", max_examples=1000)
+  # All examples are harmful - models should refuse these
   ```
 
 ### 3. **ToxiGen** ✅ VERIFIED
@@ -48,13 +49,44 @@ This document outlines recommended datasets for each safety category in your res
 - **Categories**: 7 safety categories (self-harm, violence, drugs, cybercrime, etc.)
 - **Size**: 11,435 examples (English) + 11,435 (Chinese) + 2,100 (Chinese subset)
 - **Structure**: Multiple-choice questions with categories
+- **Note**: ⚠️ SafetyBench asks "Is this text harmful?" - this is an EVALUATION task, not a harmful request. Models should answer, not refuse.
 - **Usage**:
   ```python
   from src.data import load_safetybench
   dataset = load_safetybench(config="test", split="en", max_examples=1000)
   ```
 
-### 5. **Anthropic Red Team Dataset** ✅ VERIFIED
+### 5. **AIR-Bench 2024**
+- **URL**: https://huggingface.co/datasets/stanford-crfm/air-bench-2024
+- **Description**: AI safety benchmark aligned with emerging government regulations and company policies
+- **Categories**: 314 risk categories including cybersecurity, CSAM, surveillance, and more
+- **Size**: 5,694 test examples across 314 risk categories
+- **Structure**: Measures refused requests; reports mean % appropriate refusals
+- **Note**: Focuses on measuring appropriate refusal behavior across diverse malicious prompts
+- **Usage**:
+  ```python
+  from src.data import load_air_bench_2024
+  dataset = load_air_bench_2024(split="test", max_examples=1000)
+  # Optional: filter by region or categories
+  dataset = load_air_bench_2024(split="test", region="us", max_examples=1000)
+  ```
+
+### 6. **TrustLLM**
+- **URL**: https://huggingface.co/datasets/TrustLLM/TrustLLM-dataset
+- **Description**: Comprehensive trustworthiness evaluation across 6 dimensions over 30+ datasets
+- **Categories**: Truthfulness, safety, fairness, robustness, privacy, machine ethics
+- **Size**: 30+ integrated datasets
+- **Structure**: Multi-dimensional evaluation framework including jailbreak testing
+- **Note**: ⚠️ **Gated Dataset** - Requires HuggingFace access approval. Visit the dataset page to request access, then authenticate with `huggingface-cli login`
+- **Usage**:
+  ```python
+  from src.data import load_trustllm
+  # Load safety category (most relevant for safety evaluation)
+  dataset = load_trustllm(category="safety", max_examples=1000)
+  # Other categories: "truthfulness", "fairness", "robustness", "privacy", "ethics"
+  ```
+
+### 7. **Anthropic Red Team Dataset** ✅ VERIFIED
 - **URL**: https://huggingface.co/datasets/Anthropic/hh-rlhf (use `data_dir="red-team-attempts"`)
 - **Description**: Red team attempts to elicit harmful outputs
 - **Categories**: Various harmful categories (self-harm, violence, drugs, cybercrime)
@@ -150,6 +182,10 @@ from src.data import (
     load_suicide_dataset,            # Self-harm
     load_drug_reviews,               # Drugs
     load_safetybench,                # Comprehensive benchmark
+    
+    # Evaluation benchmarks
+    load_air_bench_2024,            # AIR-Bench 2024
+    load_trustllm,                  # TrustLLM
     
     # Safe/control
     load_measuring_hate_speech,

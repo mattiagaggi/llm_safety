@@ -22,6 +22,8 @@ from src.data import (
     load_suicide_dataset,
     load_drug_reviews,
     load_safetybench,
+    load_air_bench_2024,
+    load_trustllm,
     SafetyCategory,
     SafetyDataset
 )
@@ -369,6 +371,91 @@ def main():
     except Exception as e:
         print(f"✗ Error: {e}")
         results["safetybench"] = {"success": False}
+    
+    # Test AIR-Bench 2024
+    print("\n\n14. AIR-Bench 2024 Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_air_bench_2024(split="test", max_examples=50)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        from collections import Counter
+        cats = Counter([e.category.value for e in dataset.examples])
+        print(f"  Categories: {dict(cats)}")
+        if len(dataset) > 0:
+            print(f"  Sample prompt: {dataset.examples[0].text[:100]}...")
+        results["air_bench_2024"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        results["air_bench_2024"] = {"success": False}
+    
+    # Test TrustLLM
+    print("\n\n15. TrustLLM Dataset (TrustLLM/TrustLLM-dataset)")
+    print("-" * 80)
+    try:
+        print("Step 1: Downloading from HuggingFace...")
+        start_time = time.time()
+        
+        # Try to trigger download by loading a small sample
+        try:
+            hf_dataset = load_dataset(
+                "TrustLLM/TrustLLM-dataset",
+                data_dir="safety",
+                split="train[:10]",
+                cache_dir=str(DATA_CACHE_DIR)
+            )
+            download_time = time.time() - start_time
+            print(f"✓ Download successful! (took {download_time:.2f}s for sample)")
+            print(f"  Sample size: {len(hf_dataset)} examples")
+            if len(hf_dataset) > 0:
+                print(f"  Columns: {hf_dataset.column_names}")
+                print(f"  Sample keys: {list(hf_dataset[0].keys())}")
+        except Exception as e1:
+            error_msg = str(e1)
+            if "gated" in error_msg.lower() or "DatasetNotFoundError" in str(type(e1)):
+                print(f"  ⚠️  TrustLLM is a gated dataset requiring HuggingFace access approval.")
+                print(f"  Visit https://huggingface.co/datasets/TrustLLM/TrustLLM-dataset to request access.")
+                print(f"  After approval, authenticate with: huggingface-cli login")
+            else:
+                print(f"  Note: Direct download had issues (schema mismatch), but loader may still work")
+                print(f"  Error: {str(e1)[:200]}")
+        
+        print("\nStep 2: Testing custom loader...")
+        start_time = time.time()
+        
+        # Test our custom loader
+        dataset = load_trustllm(category="safety", max_examples=100)
+        load_time = time.time() - start_time
+        
+        print(f"✓ Loader works! (took {load_time:.2f}s)")
+        print(f"  Total examples loaded: {len(dataset)}")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        print(f"  Safe: {(~dataset.get_labels().astype(bool)).sum()}")
+        
+        if len(dataset) > 0:
+            from collections import Counter
+            cats = Counter([e.category.value for e in dataset.examples])
+            print(f"  Categories: {dict(cats)}")
+            
+            # Show sample examples
+            print(f"\n  Sample examples:")
+            for i, example in enumerate(dataset.examples[:3], 1):
+                print(f"    Example {i}: {example.text[:100]}...")
+                print(f"      Category: {example.category.value}, Unsafe: {example.is_unsafe}")
+                if example.metadata:
+                    print(f"      Metadata keys: {list(example.metadata.keys())[:5]}")
+        else:
+            print(f"  ⚠️  No examples loaded - may require HuggingFace access approval")
+            print(f"  Visit https://huggingface.co/datasets/TrustLLM/TrustLLM-dataset to request access")
+        
+        results["trustllm"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        results["trustllm"] = {"success": False}
     
     # Test category filtering
     success = test_category_filtering()
