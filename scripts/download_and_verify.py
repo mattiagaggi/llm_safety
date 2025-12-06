@@ -15,6 +15,13 @@ from src.data import (
     load_combined_dataset,
     load_red_team_attempts,
     load_toxigen,
+    load_measuring_hate_speech,
+    load_alpaca,
+    load_mental_health_counseling,
+    load_self_harm_synthetic,
+    load_suicide_dataset,
+    load_drug_reviews,
+    load_safetybench,
     SafetyCategory,
     SafetyDataset
 )
@@ -273,6 +280,95 @@ def main():
     except Exception as e:
         print(f"✗ Error: {e}")
         results["toxigen"] = {"success": False}
+    
+    # Test Measuring Hate Speech
+    print("\n\n7. Measuring Hate Speech Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_measuring_hate_speech(split="train", max_examples=100, min_hate_score=0.0)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        print(f"  Safe: {(~dataset.get_labels().astype(bool)).sum()}")
+        results["measuring_hate"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["measuring_hate"] = {"success": False}
+    
+    # Test Alpaca
+    print("\n\n8. Alpaca Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_alpaca(split="train", max_examples=100)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        print(f"  Safe: {(~dataset.get_labels().astype(bool)).sum()}")
+        results["alpaca"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["alpaca"] = {"success": False}
+    
+    # Test Mental Health Counseling
+    print("\n\n9. Mental Health Counseling Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_mental_health_counseling(split="train", max_examples=50, filter_self_harm=True)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        results["mental_health"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["mental_health"] = {"success": False}
+    
+    # Test Self-Harm Synthetic
+    print("\n\n10. Self-Harm Synthetic Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_self_harm_synthetic(split="train", max_examples=50)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        results["self_harm_synthetic"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["self_harm_synthetic"] = {"success": False}
+    
+    # Test Suicide Dataset
+    print("\n\n11. Suicide Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_suicide_dataset(split="train", max_examples=50)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        results["suicide"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["suicide"] = {"success": False}
+    
+    # Test Drug Reviews
+    print("\n\n12. Drug Reviews Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_drug_reviews(split="train", max_examples=50, filter_illegal=True)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        results["drug_reviews"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["drug_reviews"] = {"success": False}
+    
+    # Test SafetyBench
+    print("\n\n13. SafetyBench Dataset")
+    print("-" * 80)
+    try:
+        dataset = load_safetybench(config="test", split="en", max_examples=50)
+        print(f"✓ Loaded {len(dataset)} examples")
+        print(f"  Unsafe: {dataset.get_labels().sum()}")
+        from collections import Counter
+        cats = Counter([e.category.value for e in dataset.examples])
+        print(f"  Categories: {dict(cats)}")
+        results["safetybench"] = {"success": True, "dataset": dataset}
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        results["safetybench"] = {"success": False}
     
     # Test category filtering
     success = test_category_filtering()

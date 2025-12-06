@@ -42,11 +42,17 @@ This document outlines recommended datasets for each safety category in your res
   dataset = load_toxigen(split="train", max_examples=1000, min_toxicity=0.5)
   ```
 
-### 4. **SafetyBench**
-- **URL**: https://github.com/thu-coai/SafetyBench
-- **Description**: Comprehensive safety evaluation benchmark
-- **Categories**: Multiple safety categories
-- **Usage**: Download from GitHub repository
+### 4. **SafetyBench** ✅ VERIFIED
+- **URL**: https://huggingface.co/datasets/thu-coai/SafetyBench
+- **Description**: Comprehensive safety evaluation benchmark with 11,435 questions
+- **Categories**: 7 safety categories (self-harm, violence, drugs, cybercrime, etc.)
+- **Size**: 11,435 examples (English) + 11,435 (Chinese) + 2,100 (Chinese subset)
+- **Structure**: Multiple-choice questions with categories
+- **Usage**:
+  ```python
+  from src.data import load_safetybench
+  dataset = load_safetybench(config="test", split="en", max_examples=1000)
+  ```
 
 ### 5. **Anthropic Red Team Dataset** ✅ VERIFIED
 - **URL**: https://huggingface.co/datasets/Anthropic/hh-rlhf (use `data_dir="red-team-attempts"`)
@@ -62,9 +68,13 @@ This document outlines recommended datasets for each safety category in your res
 
 ## Category-Specific Datasets
 
-### Self-Harm
-- **Crisis Text Line** (if available with proper permissions)
-- **Reddit r/SuicideWatch** (with proper anonymization)
+### Self-Harm ✅ VERIFIED
+- **Mental Health Counseling** ✅: `Amod/mental_health_counseling_conversations`
+  - Usage: `load_mental_health_counseling(filter_self_harm=True)`
+- **Self-Harm Synthetic Eval** ✅: `arianaazarbal/self-harm-synthetic-eval`
+  - Usage: `load_self_harm_synthetic()`
+- **Suicide Dataset** ✅: `jquiros/suicide`
+  - Usage: `load_suicide_dataset()`
 - **BeaverTails** filtered for self-harm category
 
 ### Violence
@@ -73,7 +83,9 @@ This document outlines recommended datasets for each safety category in your res
   - https://huggingface.co/datasets/hate_speech18
   - https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech
 
-### Drugs
+### Drugs ✅ VERIFIED
+- **Drug Reviews** ✅: `lewtun/drug-reviews`
+  - Usage: `load_drug_reviews(filter_illegal=True)`
 - **BeaverTails** filtered for drug-related content
 - **HarmfulQA** drug category
 
@@ -81,19 +93,69 @@ This document outlines recommended datasets for each safety category in your res
 - **HarmfulQA** cybercrime category
 - **Anthropic Red Team** filtered for hacking/cybercrime
 
-## Safe/Control Datasets
+## Safe/Control Datasets ✅ VERIFIED
 
 For contrast, you'll also need safe examples:
-- **Alpaca Dataset**: https://huggingface.co/datasets/tatsu-lab/alpaca
-- **OpenWebText**: General web text
+- **Alpaca Dataset** ✅: `tatsu-lab/alpaca`
+  - Usage: `load_alpaca()`
+- **Measuring Hate Speech** ✅: `ucberkeley-dlab/measuring-hate-speech`
+  - Usage: `load_measuring_hate_speech(min_hate_score=0.5)` (lower scores = safe)
 - **BeaverTails** helpful (non-harmful) subset
+
+## Category Balance Status (with SafetyBench)
+
+**Current distribution** (all datasets combined):
+- **Self-harm**: 1,996 examples (12.7% of unsafe) ✅ **Improved significantly**
+- **Violence**: 12,258 examples (78.1% of unsafe) ⚠️ **Still dominant**
+- **Drugs**: 96 examples (0.6% of unsafe) ⚠️ **Still very low**
+- **Cybercrime**: 1,342 examples (8.6% of unsafe) ✅ **Improved significantly**
+- **Safe**: 2,500 examples (13.7% of total)
+
+**SafetyBench contribution:**
+- Self-harm: +1,566 examples
+- Violence: +8,461 examples
+- Drugs: +70 examples
+- Cybercrime: +1,338 examples
+
+**Balance ratio**: 0.78% (min/max) - **Still highly imbalanced**
+
+**Recommendations:**
+- Use `create_balanced_category_dataset()` to balance categories
+- Consider keyword filtering on existing datasets for drugs
+- Drugs category needs more data sources
+
+
 
 ## Implementation Notes
 
-1. **Data Balance**: Ensure balanced safe/unsafe examples per category
+1. **Data Balance**: Use balancing utilities (`balance_utils.py`, `category_balance.py`) to create balanced datasets
 2. **Quality**: Prefer human-annotated datasets over synthetic
 3. **Ethics**: Use datasets with proper licenses and ethical guidelines
 4. **Size**: Aim for at least 1k examples per category for robust results
+5. **Splits**: Some datasets have native train/test splits, others need manual splitting (see `DATASET_SPLITS.md`)
+
+## All Available Loaders
+
+```python
+from src.data import (
+    # Main datasets
+    load_beavertails,
+    load_harmfulqa,
+    load_red_team_attempts,
+    load_toxigen,
+    
+    # Category-specific
+    load_mental_health_counseling,  # Self-harm
+    load_self_harm_synthetic,        # Self-harm
+    load_suicide_dataset,            # Self-harm
+    load_drug_reviews,               # Drugs
+    load_safetybench,                # Comprehensive benchmark
+    
+    # Safe/control
+    load_measuring_hate_speech,
+    load_alpaca,
+)
+```
 
 ## Quick Start
 
@@ -102,4 +164,5 @@ See `src/data/data_loader.py` for implementation examples. The loader supports:
 - Custom CSV/JSON files
 - Filtering by category
 - Train/test splitting
+- Balancing utilities (see `src/data/balance_utils.py` and `category_balance.py`)
 
