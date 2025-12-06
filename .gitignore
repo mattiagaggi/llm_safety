@@ -37,6 +37,7 @@ datasets_cache/
 
 # Models
 models/
+models_cache/
 checkpoints/
 *.pt
 *.pth
